@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>LED Voice Control</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        :root {
+            --primary-color: #4CAF50;
+            --background-color: #1a1a1a;
+            --text-color: #ffffff;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background-color: var(--background-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .container {
+            max-width: 600px;
+            width: 100%;
+            text-align: center;
+        }
+
+        h1 {
+            font-size: 2.5em;
+            margin-bottom: 30px;
+            color: var(--primary-color);
+        }
+
+        .mic-button {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 80px;
+            height: 80px;
+            font-size: 24px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 20px auto;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .mic-button:active {
+            transform: scale(0.95);
+            background-color: #45a049;
+        }
+
+        .mic-button.listening {
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+
+        #status {
+            margin: 20px;
+            padding: 15px;
+            border-radius: 10px;
+            background-color: rgba(255,255,255,0.1);
+            font-size: 1.2em;
+        }
+
+        .command-list {
+            margin-top: 30px;
+            text-align: left;
+            background-color: rgba(255,255,255,0.05);
+            padding: 20px;
+            border-radius: 10px;
+        }
+
+        .command-list h2 {
+            color: var(--primary-color);
+            margin-bottom: 15px;
+        }
+
+        .command-list ul {
+            list-style-type: none;
+            padding: 0;
+        }
+
+        .command-list li {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 5px;
+            background-color: rgba(255,255,255,0.05);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>LED Sprachsteuerung</h1>
+        
+        <button id="startButton" class="mic-button">
+            🎤
+        </button>
+        
+        <div id="status">Click microphone to start voice recognition</div>
+    
+        <div class="command-list">
+            <h2>Available Commands</h2>
+            <ul>
+                <li>"On" / "Einschalten" - Turn all LEDs on (white)</li>
+                <li>"Off" / "Ausschalten" - Turn all LEDs off</li>
+                <li>"Red" / "Rot" - Set color to red</li>
+                <li>"Green" / "Grün" - Set color to green</li>
+                <li>"Blue" / "Blau" - Set color to blue</li>
+                <li>"White" / "Weiß" - Set color to white</li>
+                <li>"Rainbow" / "Regenbogen" - Start rainbow effect</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        const startButton = document.getElementById('startButton');
+        const status = document.getElementById('status');
+        let recognition;
+
+        if ('webkitSpeechRecognition' in window) {
+            recognition = new webkitSpeechRecognition();
+            recognition.continuous = false;
+            recognition.interimResults = false;
+
+            recognition.onstart = function() {
+                status.textContent = 'Höre zu...';
+                startButton.classList.add('listening');
+            };
+
+            recognition.onend = function() {
+                status.textContent = 'Mikrofon klicken um Spracherkennung zu starten';
+                startButton.classList.remove('listening');
+            };
+
+            recognition.onresult = function(event) {
+                const command = event.results[0][0].transcript.toLowerCase();
+                status.textContent = `Erkannter Befehl: ${command}`;
+                
+                fetch('/send-command', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ command: command })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        status.textContent = `Befehl gesendet: ${command}`;
+                    } else {
+                        status.textContent = 'Fehler beim Senden des Befehls';
+                    }
+                });
+            };
+
+            recognition.onerror = function(event) {
+                status.textContent = 'Fehler bei der Spracherkennung: ' + event.error;
+                startButton.classList.remove('listening');
+            };
+        }
+
+        startButton.addEventListener('click', function() {
+            if (recognition) {
+                recognition.start();
+            } else {
+                status.textContent = 'Speech recognition not supported';
+            }
+        });
+    </script>
+</body>
+</html>
