@@ -2,7 +2,7 @@
 
 A voice-controlled LED system using Arduino and web interface, created by GAWI.
 
-![ArduVoice Interface](arduvoice.png)
+![ArduVoice Interface](/Users/gabriel/Developer/voice_control_spl/arduvoice.png)
 
 ## Features
 
